@@ -2,6 +2,7 @@
 import requests
 from requests.auth import HTTPBasicAuth
 import json
+from datetime import datetime
 
 
 # In the url mention the Jira url used
@@ -29,7 +30,6 @@ def getInitiative(id):
     
     return response
 
-
 def createInitiative(data):
    payload = json.dumps( 
       {
@@ -38,13 +38,19 @@ def createInitiative(data):
             {
                "key": "TP"   
             },
-            "summary": data["name"],
-            "customfield_10033": data["acceptance_criteria"],
+            "summary": data["name"] if "name" in data else "New initiative",
+            "customfield_10033": data["acceptance_criteria"] if "acceptance_criteria" in data else "New acceptance_criteria",
+            "customfield_10008": data["actual_start"] if "actual_start" in data else "2024-07-31",
+            "customfield_10034": data["implementation_benefit"] if "implementation_benefit" in data else "New implementation_benefit",
+            "customfield_10035": data["value_addition"] if "value_addition" in data else "New value_addition",
+            "labels": data["labels"] if "labels" in data else ["Newlabel"],
             "issuetype": {
                "name": "Initiative"
             }
          }
       })
+   
+   print(payload)
    response = requests.request(
       "POST",
       url,
@@ -52,6 +58,7 @@ def createInitiative(data):
       headers=headers,
       auth=auth
    )
+   print(response.status_code)
 
    print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
 
@@ -67,8 +74,15 @@ def createEpic(data
             {
                "key": "TP"   
             },
-            "summary": data["name"],
-            "description": data["description"],
+            "summary": data["name"] if "name" in data else "New Epic",
+            "description": data["description"] if "description" in data else "New description",
+            # "customfield_10001": data["team"] if "team" in data else "New team",
+            "customfield_10033": data["acceptance_criteria"] if "acceptance_criteria" in data else "New acceptance_criteria",
+            "customfield_10034": data["implementation_benefit"] if "implementation_benefit" in data else "New implementation_benefit",
+            "customfield_10035": data["value_addition"] if "value_addition" in data else "New value_addition",
+            "customfield_10036": data["components"] if "components" in data else ["components"],
+            "customfield_10039": data["team"] if "team" in data else "team",
+            "labels": data["labels"] if "labels" in data else ["Newlabel"],
             # "parent": {
             #    "key": str(initKey)
             # },
@@ -97,8 +111,14 @@ def createStory(data,epicKey):
             {
                "key": "TP"   
             },
-            "summary": data["name"],
-            "description": data["description"],
+            "summary": data["name"] if "name" in data else "New Story",
+            "description": data["description"] if "name" in data else "New description",
+            "customfield_10033": data["acceptance_criteria"] if "acceptance_criteria" in data else "New acceptance_criteria",
+            "customfield_10034": data["implementation_benefit"] if "implementation_benefit" in data else "New implementation_benefit",
+            "customfield_10035": data["value_addition"] if "value_addition" in data else "New value_addition",
+            "customfield_10037": data["team"] if "team" in data else "team",
+            "customfield_10016": data["estimate"] if "estimate" in data else 5,
+            "labels": data["labels"] if "labels" in data else ["Newlabel"],
             "parent": {
                "key": str(epicKey)
             },
@@ -122,16 +142,19 @@ def createStory(data,epicKey):
 def createJira():   
    with open('gptdata.json') as f:
       data = json.load(f)
-      initiative = createInitiative(data["initiative"])
+      if "initiative" in data:
+         initiative = createInitiative(data["initiative"])
 
-      for ep in data["initiative"]["epics"]:
-         epic = createEpic(ep
-                           #   ,json.loads(initiative.text)["key"]
-                           )
-         for st in ep["stories"]:
-               story = createStory(ep
-                           ,json.loads(epic.text)["key"]
-                           )
+         if "epics" in data["initiative"]:
+            for ep in data["initiative"]["epics"]:
+               epic = createEpic(ep
+                                 #   ,json.loads(initiative.text)["key"]
+                                 )
+               if "stories" in ep:
+                  for st in ep["stories"]:
+                        story = createStory(ep
+                                    ,json.loads(epic.text)["key"]
+                                    )
             
    #  response = getInitiative("TP-19")
    #  print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
